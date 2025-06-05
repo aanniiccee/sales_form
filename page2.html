@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 100%;
+        margin: auto;
+        padding: 20px;
+        background-color: #f9f9f9;
+      }
+
+      h2 {
+        text-align: center;
+        color: #333;
+      }
+
+      .form-group {
+        padding: 5px;
+        display: inline-block;
+        margin-right: 15px;
+      }
+
+      label {
+        font-weight: bold;
+        display: block;
+        padding: 3px;
+        margin-top: 3px;
+        font-size: 14px;
+      }
+
+      input, select {
+        width: 100%;
+        padding: 5px 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 12px;
+        box-sizing: border-box;
+        height: 30px;
+        line-height: 18px;
+      }
+
+      .table-container {
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      table {
+        width: max-content;
+        min-width: 100%;
+        border-collapse: collapse;
+        background: white;
+        font-size: 12px;
+        margin-top: 20px;
+      }
+
+      th, td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: center;
+      }
+
+      th {
+        background-color: #4CAF50;
+        color: white;
+      }
+
+      button {
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 20%;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      .pagination {
+        position: fixed;
+        bottom: 40px;
+        right: 20px;
+        background-color: #f9f9f9;
+        text-align: center;
+        z-index: 10;
+        padding: 10px 0;
+      }
+
+      .pagination button {
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        padding: 5px 8px;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 2px;
+        width: 70px;
+      }
+
+      .pagination button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .savebutton {
+        position: fixed;
+        top: 150px;
+        right: 40px;
+        background-color: #f9f9f9;
+        text-align: center;
+        z-index: 10;
+        padding: 10px 0;
+      }
+
+      #saveChangesBtn {
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        padding: 10px 10px;
+        width: auto;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: none;
+      }
+
+      #saveChangesBtn:hover {
+        background-color: #0056b3;
+      }
+
+      #customAlert {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+        text-align: center;
+        width: 400px;
+        z-index: 10000;
+      }
+
+      #customAlertButton {
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100px;
+        height: 40px;
+        margin: 10px auto;
+      }
+
+      #customAlertButton:hover {
+        background-color: #0056b3;
+      }
+
+      /* Custom Confirm Box */
+      #customConfirm {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 9999;
+      }
+
+      #customConfirmBox {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 450px;
+        max-width: 90%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 15px rgba(0,0,0,0.3);
+        text-align: center;
+      }
+
+      #customConfirmBox p {
+        font-size: 16px;
+        margin-bottom: 20px;
+      }
+
+      #customConfirmBox button {
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        margin: 0 10px;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      #customConfirmBox button:hover {
+        background-color: #0056b3;
+      }
+    </style>
+
+    <script>
+      let ordersData = [];
+      let currentPage = 1;
+      const rowsPerPage = 11;
+      let filteredOrders = [];
+      let editedOrders = {};
+
+      function showCustomAlert(message) {
+        document.getElementById("customAlertMessage").innerText = message;
+        document.getElementById("customAlert").style.display = "block";
+      }
+
+      function closeAlert() {
+        document.getElementById("customAlert").style.display = "none";
+      }
+
+      function showCustomConfirm(message, callback) {
+        document.getElementById("customConfirmMessage").innerText = message;
+        document.getElementById("customConfirm").style.display = "block";
+
+        document.getElementById("customConfirmYes").onclick = function() {
+          document.getElementById("customConfirm").style.display = "none";
+          callback(true);
+        };
+
+        document.getElementById("customConfirmNo").onclick = function() {
+          document.getElementById("customConfirm").style.display = "none";
+          callback(false);
+        };
+      }
+
+      function fetchOrders() {
+        google.script.run.withSuccessHandler(function(orders) {
+          if (!orders || orders.length === 0) {
+            console.error("No orders found.");
+            return;
+          }
+
+          orders.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
+          ordersData = orders;
+          filteredOrders = ordersData;
+          renderTable();
+        }).withFailureHandler(function(error) {
+          console.error("Error fetching orders: ", error);
+        }).getOrders();
+      }
+
+      function renderTable() {
+        const table = document.getElementById("ordersTable");
+        table.innerHTML = `
+          <tr>
+            <th>Order ID</th>
+            <th>Create Date</th>
+            <th>Order Date</th>
+            <th>Customer ID</th>
+            <th>Total Price</th>
+            <th>Delivery Fee</th>
+            <th>Delivery Address</th>
+            <th>Payment Leadtime</th>
+            <th>Order Channel</th>
+            <th>Customer Type</th>
+            <th>Note</th>
+            <th>Actions</th>
+          </tr>
+        `;
+
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const paginatedOrders = filteredOrders.slice(startIndex, startIndex + rowsPerPage);
+
+        paginatedOrders.forEach(order => {
+          const isEditing = !!editedOrders[order.orderID];
+
+          const row = table.insertRow();
+          row.innerHTML = `
+            <td>${order.orderID}</td>
+            <td>${order.createdDate}</td>
+            <td>${order.orderDate}</td>
+            <td>${order.customerID}</td>
+            <td>${order.totalPrice}</td>
+            <td>${order.deliveryFee}</td>
+            <td>${isEditing ? `<input value="${order.deliveryAddress}" data-field="deliveryAddress" data-id="${order.orderID}">` : order.deliveryAddress}</td>
+            <td>${isEditing ? `<input value="${order.paymentLeadtime || ''}" data-field="paymentLeadtime" data-id="${order.orderID}">` : order.paymentLeadtime || ''}</td>
+            <td>${isEditing ? `<input value="${order.orderChannel}" data-field="orderChannel" data-id="${order.orderID}">` : order.orderChannel}</td>
+            <td>${isEditing ? `<input value="${order.customerType}" data-field="customerType" data-id="${order.orderID}">` : order.customerType}</td>
+            <td>${isEditing ? `<input value="${order.note}" data-field="note" data-id="${order.orderID}">` : order.note}</td>
+            <td>
+  ${
+    isEditing
+      ? `<span style="cursor: pointer; color: orange;" onclick="toggleEdit('${order.orderID}')">❌ Cancel</span>`
+      : `<span style="cursor: pointer; color: blue;" onclick="toggleEdit('${order.orderID}')">✏️</span>
+  <span style="cursor: pointer; color: red; margin-left: 10px;" onclick="deleteOrder('${order.orderID}')">🗑️</span>`
+  }
+</td>
+
+          `;
+        });
+
+        document.getElementById("prevBtn").disabled = currentPage === 1;
+        document.getElementById("nextBtn").disabled = startIndex + rowsPerPage >= filteredOrders.length;
+      }
+
+      function toggleEdit(orderID) {
+        const order = ordersData.find(o => o.orderID === orderID);
+        if (!editedOrders[orderID]) {
+          editedOrders[orderID] = { ...order };
+        } else {
+          delete editedOrders[orderID];
+        }
+        document.getElementById("saveChangesBtn").style.display = Object.keys(editedOrders).length > 0 ? "inline-block" : "none";
+        renderTable();
+      }
+
+      function deleteOrder(orderID) {
+        showCustomConfirm("Are you sure you want to delete this order?", function(confirmed) {
+          if (confirmed) {
+            google.script.run.withSuccessHandler(() => {
+              showCustomAlert("Order deleted.");
+              fetchOrders();
+            })
+            .withFailureHandler(error => {
+              console.error("Delete failed:", error);
+            }).deleteOrder(orderID);
+          }
+        });
+      }
+
+      function saveAllChanges() {
+        const inputs = document.querySelectorAll("input[data-id]");
+        inputs.forEach(input => {
+          const id = input.getAttribute("data-id");
+          const field = input.getAttribute("data-field");
+          editedOrders[id][field] = input.value;
+        });
+
+        const ordersToUpdate = Object.values(editedOrders);
+        if (ordersToUpdate.length === 0) return;
+
+        const updatePromises = ordersToUpdate.map(order => {
+          return new Promise((resolve, reject) => {
+            google.script.run
+              .withSuccessHandler(() => {
+                const index = ordersData.findIndex(o => o.orderID === order.orderID);
+                if (index !== -1) {
+                  ordersData[index] = { ...ordersData[index], ...order };
+                }
+                resolve();
+              })
+              .withFailureHandler(reject)
+              .updateOrder(order);
+          });
+        });
+
+        Promise.allSettled(updatePromises).then(results => {
+          const failed = results.filter(r => r.status === "rejected");
+          if (failed.length > 0) {
+            showCustomAlert("Some updates failed.");
+          } else {
+            showCustomAlert("Changes saved.");
+          }
+
+          editedOrders = {};
+          document.getElementById("saveChangesBtn").style.display = "none";
+          renderTable();
+        });
+      }
+
+      function nextPage() {
+        if (currentPage * rowsPerPage < filteredOrders.length) {
+          currentPage++;
+          renderTable();
+        }
+      }
+
+      function prevPage() {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTable();
+        }
+      }
+
+      function filterByDate() {
+        const startDate = document.getElementById("startDate").value;
+        const endDate = document.getElementById("endDate").value;
+
+        filteredOrders = ordersData.filter(order => {
+          const orderDate = new Date(order.orderDate);
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+
+          return (!startDate || orderDate >= start) && (!endDate || orderDate <= end);
+        });
+
+        currentPage = 1;
+        renderTable();
+      }
+
+      window.onload = function() {
+        fetchOrders();
+      };
+    </script>
+  </head>
+  <body>
+    <p><a href='<?= url ?>'>Back to order page</a></p>
+    <hr>
+    <h2>Order Management</h2>
+
+    <div class="form-group">
+      <label for="startDate">Order Date From:</label>
+      <input type="date" id="startDate" onchange="filterByDate()">
+    </div>
+    <div class="form-group">
+      <label for="endDate">Order Date To:</label>
+      <input type="date" id="endDate" onchange="filterByDate()">
+    </div>
+
+    <div class="savebutton">
+      <button id="saveChangesBtn" onclick="saveAllChanges()">Save Change</button>
+    </div>
+
+    <div class="table-container">
+      <table id="ordersTable"></table>
+      <div class="pagination">
+        <button id="prevBtn" onclick="prevPage()">Previous</button>
+        <button id="nextBtn" onclick="nextPage()">Next</button>
+      </div>
+    </div>
+
+    <!-- Custom Alert -->
+    <div id="customAlert">
+      <p id="customAlertMessage"></p>
+      <button id="customAlertButton" onclick="closeAlert()">OK</button>
+    </div>
+
+    <!-- Custom Confirm -->
+    <div id="customConfirm">
+      <div id="customConfirmBox">
+        <p id="customConfirmMessage"></p>
+        <button id="customConfirmYes">Yes</button>
+        <button id="customConfirmNo">Cancel</button>
+      </div>
+    </div>
+  </body>
+</html>
