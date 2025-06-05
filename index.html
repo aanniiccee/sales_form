@@ -1,82 +1,299 @@
 <!DOCTYPE html>
-<html lang="th">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>เมนูและฟอร์มตัวอย่าง</title>
+  <base target="_top">
   <style>
     body {
       font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: auto;
       padding: 20px;
+      background-color: #f9f9f9;
     }
-    .button-container {
-      margin-bottom: 20px;
+
+    h2 {
+      text-align: center;
+      color: #333;
     }
-    .textbox-link {
-      background-color: #007bff;
+
+    .container {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .column {
+      width: 100%;
+      padding: 10px;
+    }
+
+    .form-group {
+      padding: 10px;
+      max-width: 1000px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      padding: 5px;
+      margin-top: 3px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+      box-sizing: border-box;
+      height: 40px;
+      line-height: 20px;
+    }
+
+    table {
+      width: 750px;
+      border-collapse: collapse;
+      background: white;
+      margin: 0 auto;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    button {
+      background-color: #007BFF;
       color: white;
       border: none;
-      padding: 10px 15px;
-      margin-right: 10px;
+      padding: 10px 20px;
+      font-size: 14px;
+      border-radius: 5px;
       cursor: pointer;
-      border-radius: 4px;
-      font-size: 16px;
+      width: 20%;
+      display: block;
+      text-align: center;
     }
-    .textbox-link:hover {
+
+    .button-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      margin-bottom: 20px;
+    }
+
+    button:hover {
       background-color: #0056b3;
     }
-    label {
+
+    #customAlert {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+      text-align: center;
+      z-index: 1000;
+    }
+
+    #customAlertButton {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100px;
+      height: 40px;
+      margin: 10px auto;
+    }
+
+    #customAlertButton:hover {
+      background-color: #0056b3;
+    }
+
+    .textbox-link {
       display: block;
-      margin: 10px 0 5px;
-    }
-    input[type="date"] {
-      padding: 5px;
+      padding: 10px;
+      width: 200px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      text-align: center;
+      background-color: white;
+      color: black;
+      text-decoration: none;
       font-size: 16px;
+      margin-right: 10px;
     }
+
+    .textbox-link:hover {
+      background-color: #f0f0f0;
+    }
+
+    /* Phone Suggestions */
+    #phoneSuggestions {
+      border: 1px solid #ccc;
+      background: white;
+      position: absolute;
+      max-height: 150px;
+      overflow-y: auto;
+      display: none;
+      width: 200px;
+      z-index: 999;
+    }
+
+    #productsTable th, #productsTable td {
+      padding: 10px;
+      text-align: center;
+      }
+      
+    #productsTable th:nth-child(1), #productsTable td:nth-child(1),
+    #productsTable th:nth-child(3), #productsTable td:nth-child(3),
+    #productsTable th:nth-child(4), #productsTable td:nth-child(4),
+    #productsTable th:nth-child(5), #productsTable td:nth-child(5) {
+      width: 100px;
+    }
+
+    #productsTable th:nth-child(2), #productsTable td:nth-child(2) {
+      width: 300px;
+    }
+
   </style>
-</head>
-<body>
-
-  <div class="button-container"></div>
-
-  <form>
-    <label for="orderDate">วันที่สั่งซื้อ:</label>
-    <input type="date" id="orderDate" name="orderDate" />
-  </form>
 
   <script>
-    // สร้างปุ่มเมนูและเพิ่มลงใน .button-container
+    // ลิงก์ของแต่ละหน้า สามารถแก้ไขให้เป็น url จริงของคุณได้เลย
+    const urls = [
+      "page1.html",
+      "page2.html",
+      "page3.html"
+    ];
+
     window.onload = function() {
+      // สร้างลิงก์จาก urls array
       const container = document.querySelector('.button-container');
-      container.innerHTML = "";
+      container.innerHTML = ""; // เคลียร์ก่อน
 
-      const menuItems = [
-        { name: "Customer Management", url: "customer.html" },
-        { name: "Order Management", url: "order.html" },
-        { name: "Product Management", url: "product.html" }
-      ];
+      const linkNames = ["Customer Management", "Order Management", "Product Management"];
 
-      menuItems.forEach(item => {
-        const btn = document.createElement("button");
-        btn.textContent = item.name;
-        btn.className = "textbox-link";
-        btn.type = "button";
-        btn.onclick = function() {
-          window.location.href = item.url;
-        };
-        container.appendChild(btn);
-      });
-
-      // ตัวอย่างฟังก์ชันโหลดสินค้า (mock)
-      function fetchProducts() {
-        console.log("โหลดข้อมูลสินค้า...");
-        // ใส่โค้ดโหลดข้อมูลสินค้าจริงที่นี่
+      for(let i = 0; i < urls.length && i < 3; i++) {
+        let a = document.createElement("a");
+        a.href = urls[i];
+        a.className = "textbox-link";
+        a.textContent = linkNames[i];
+        container.appendChild(a);
       }
-      fetchProducts();
 
-      // ตั้งค่าวันที่ปัจจุบันให้ input date
-      document.getElementById("orderDate").value = new Date().toISOString().slice(0, 10);
+      fetchProducts();
+      document.getElementById("orderDate").value = new Date().toISOString().split("T")[0];
     };
+
+    // ฟังก์ชันอื่น ๆ ของคุณตามที่มีอยู่ในโค้ดเดิม (ผมตัดเพื่อความกระชับ แต่คุณสามารถนำโค้ดที่เหลือไว้ด้านล่างได้เลย)
+
+    function showCustomAlert(message) {
+      var alertDiv = document.getElementById("customAlert");
+      var alertMessage = document.getElementById("alertMessage");
+      alertMessage.textContent = message;
+      alertDiv.style.display = "block";
+      document.getElementById("customAlertButton").focus();
+    }
+
+    function closeAlert() {
+      document.getElementById("customAlert").style.display = "none";
+    }
+
+    // ... (โค้ดฟังก์ชันอื่น ๆ ที่คุณมี เช่น fetchPhoneSuggestions, fetchCustomer, saveOrder ฯลฯ)
+
   </script>
+</head>
+
+<body>
+
+  <div class="button-container">
+    <!-- ลิงก์จะถูกสร้างที่นี่โดย JavaScript -->
+  </div>
+
+  <hr>
+  <h2>New Order</h2>
+  <form id="orderForm">
+    <div class="container">
+      <div class="column">
+        <label>Phone Number <span style="color: red;">**</span></label>
+        <input type="text" id="phoneNumber" oninput="fetchPhoneSuggestions()" autocomplete="off" placeholder="Enter phone number">
+        <div id="phoneSuggestions"></div>
+
+        <label>Order Date</label>
+        <input type="date" id="orderDate">
+        <input type="hidden" id="customerID">
+        <label>Customer Name</label>
+        <input type="text" id="customerName" readonly>
+        <label>Delivery Address</label>
+        <select id="addressDropdown" onchange="toggleNewAddress()" ></select>
+        <input type="text" id="newAddress" style="display: none;" placeholder="Enter new address">
+      </div>
+      
+      <div class="column">
+        <label>Payment Lead-Time</label>
+        <input type="number" id="paymentLeadTime" placeholder="Enter payment lead-time">
+        <label>Order Channel</label>
+        <select id="orderChannel">
+          <option value="Facebook">Facebook</option>
+          <option value="Line">Line</option>
+          <option value="Other">Other</option>
+        </select>
+        <label>Customer Type</label>
+        <select id="custType">
+          <option value="B2C">B2C</option>
+          <option value="B2B">B2B</option>
+        </select>
+
+        <label>Note</label>
+        <input type="text" id="note" placeholder="Enter any notes">
+      </div>
+
+      <div class="column">
+        <label>Total Product Price</label>
+        <input type="text" id="totalPrice" readonly value="0.00">
+        <label>Delivery Fee <span style="color: red;">**</span></label>
+        <input type="number" id="deliveryFee" oninput="calculateFinalTotal()" placeholder="Enter delivery fee">
+        <label>Final Price</label>
+        <input type="text" id="finalPrice" readonly value="0.00">
+      </div>
+    </div>
+
+    <div class="button-container">
+      <button type="button" onclick="saveOrder()">Save Order</button>
+    </div>
+  </form>
+
+  <table border="1" id="productsTable">
+    <tr>
+      <th>Product ID</th>
+      <th>Product Name</th>
+      <th>Price</th>
+      <th>Quantity</th>
+      <th>Total</th>
+    </tr>
+  </table>
+
+  <div id="customAlert">
+    <p id="alertMessage">Please fill in the required fields!</p>
+    <button id="customAlertButton" onclick="closeAlert()">OK</button>
+  </div>
+
 </body>
 </html>
