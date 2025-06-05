@@ -192,25 +192,34 @@
     ];
 
     window.onload = function() {
-      const container = document.querySelector('.button-container');
-      container.innerHTML = "";
+  // สร้างปุ่มเมนู 3 ปุ่ม
+  const container = document.querySelector('.button-container');
+  container.innerHTML = ""; // เคลียร์ก่อน
 
-      const linkNames = ["Customer Management", "Order Management", "Product Management"];
+  const menuItems = [
+    { name: "Customer Management", url: "customer.html" },
+    { name: "Order Management", url: "order.html" },
+    { name: "Product Management", url: "product.html" }
+  ];
 
-      for(let i = 0; i < urls.length && i < 3; i++) {
-        let btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "textbox-link";
-        btn.textContent = linkNames[i];
-        btn.onclick = function() {
-          window.location.href = urls[i];
-        };
-        container.appendChild(btn);
-      }
-
-      fetchProducts();
-      document.getElementById("orderDate").value = new Date().toISOString().split("T")[0];
+  menuItems.forEach(item => {
+    const btn = document.createElement("button");
+    btn.textContent = item.name;
+    btn.className = "textbox-link";
+    btn.type = "button";
+    btn.onclick = function() {
+      window.location.href = item.url;
     };
+    container.appendChild(btn);
+  });
+
+  // เรียกใช้ฟังก์ชันโหลดสินค้า
+  fetchProducts();
+
+  // ตั้งค่าวันที่ปัจจุบัน
+  document.getElementById("orderDate").value = new Date().toISOString().slice(0, 10);
+};
+
 
 
     function showCustomAlert(message) {
