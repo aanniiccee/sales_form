@@ -88,6 +88,13 @@
       margin-bottom: 20px;
     }
 
+    .menu-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      margin-bottom: 20px;
+    }
+
     button:hover {
       background-color: #0056b3;
     }
@@ -185,7 +192,7 @@
 
     window.onload = function() {
       // สร้างลิงก์จาก urls array
-      const container = document.querySelector('.button-container');
+      const container = document.querySelector('.menu-container');
       container.innerHTML = ""; // เคลียร์ก่อน
 
       const linkNames = ["Customer Management", "Order Management", "Product Management"];
