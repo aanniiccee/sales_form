@@ -191,23 +191,32 @@
     ];
 
     window.onload = function() {
-      // สร้างลิงก์จาก urls array
-      const container = document.querySelector('.menu-container');
-      container.innerHTML = ""; // เคลียร์ก่อน
+  const container = document.querySelector('.button-container');
+  container.innerHTML = "";
 
-      const linkNames = ["Customer Management", "Order Management", "Product Management"];
+  const urls = [
+    "customer.html",
+    "order.html",
+    "product.html"
+  ];
 
-      for(let i = 0; i < urls.length && i < 3; i++) {
-        let a = document.createElement("a");
-        a.href = urls[i];
-        a.className = "textbox-link";
-        a.textContent = linkNames[i];
-        container.appendChild(a);
-      }
+  const linkNames = ["Customer Management", "Order Management", "Product Management"];
 
-      fetchProducts();
-      document.getElementById("orderDate").value = new Date().toISOString().split("T")[0];
+  for(let i = 0; i < urls.length && i < 3; i++) {
+    let btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "textbox-link";
+    btn.textContent = linkNames[i];
+    btn.onclick = function() {
+      window.location.href = urls[i];
     };
+    container.appendChild(btn);
+  }
+
+  fetchProducts();
+  document.getElementById("orderDate").value = new Date().toISOString().split("T")[0];
+};
+
 
     // ฟังก์ชันอื่น ๆ ของคุณตามที่มีอยู่ในโค้ดเดิม (ผมตัดเพื่อความกระชับ แต่คุณสามารถนำโค้ดที่เหลือไว้ด้านล่างได้เลย)
 
