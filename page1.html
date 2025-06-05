@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    .container {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .column {
+      width: 100%;
+      padding: 10px;
+    }
+
+    .form-group {
+      padding: 10px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      padding: 5px;
+      margin-top: 3px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+      box-sizing: border-box;
+      height: 40px;
+      line-height: 20px;
+    }
+
+    button {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 20%;
+      margin-left: 270px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #phoneNumberEdit {
+      display: none;
+    }
+
+    #phoneSuggestions {
+      display: none;
+      position: absolute;
+      background: #fff;
+      border: 1px solid #ddd;
+      width: 100%;
+      box-sizing: border-box;
+      z-index: 100;
+    }
+
+    #phoneSuggestions div {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #ddd;
+    }
+
+    #phoneSuggestions div:hover {
+      background-color: #f1f1f1;
+    }
+
+    .checkbox-container {
+      display: inline-flex;
+      align-items: center;
+      margin: 10px 0;
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-right: 5px;
+    }
+
+    label[for="changePhoneNumber"] {
+      font-size: 14px;
+      font-weight: normal;
+      color: #333;
+    }
+
+    .change-phone-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 10px;
+      align-items: center;
+    }
+
+    .change-phone-container label {
+      font-size: 14px;
+      margin-right: 10px;
+    }
+
+    .change-phone-container input[type="checkbox"] {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+
+    #customAlert {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    #customAlertButton {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100px;
+      height: 40px;
+      margin: 10px auto;
+    }
+
+    #customAlertButton:hover {
+      background-color: #0056b3;
+    }
+  </style>
+
+  <script>
+    function showCustomAlert(message) {
+      document.getElementById("alertMessage").textContent = message;
+      document.getElementById("customAlert").style.display = "block";
+    }
+
+    function closeAlert() {
+      document.getElementById("customAlert").style.display = "none";
+    }
+
+    function fetchPhoneSuggestions() {
+      var phoneInput = document.getElementById("phoneNumber");
+      var query = phoneInput.value.trim();
+      var suggestionsDiv = document.getElementById("phoneSuggestions");
+
+      if (!query) {
+        resetCustomerForm();
+        suggestionsDiv.style.display = "none";
+        return;
+      }
+
+      google.script.run.withSuccessHandler(function(phoneNumbers) {
+        suggestionsDiv.innerHTML = "";
+        if (phoneNumbers.length > 0) {
+          suggestionsDiv.style.display = "block";
+          suggestionsDiv.style.position = "absolute";
+          suggestionsDiv.style.width = phoneInput.offsetWidth + "px";
+
+          phoneNumbers.forEach(function(phoneNumber) {
+            var suggestionItem = document.createElement("div");
+            suggestionItem.textContent = phoneNumber;
+            suggestionItem.onclick = function() {
+              phoneInput.value = phoneNumber;
+              suggestionsDiv.style.display = "none";
+              fetchCustomer();
+            };
+            suggestionsDiv.appendChild(suggestionItem);
+          });
+        } else {
+          suggestionsDiv.style.display = "none";
+        }
+      }).getMatchingPhoneNumbers(query);
+    }
+
+    function fetchCustomer() {
+      var phone = document.getElementById("phoneNumber").value.trim();
+      var changePhoneCheckbox = document.getElementById("changePhoneNumber");
+
+      if (!phone) return;
+
+      google.script.run.withSuccessHandler(function(data) {
+        if (data) {
+          document.getElementById("customerID").value = data.customerID || "";
+          document.getElementById("customerName").value = data.customerName || "";
+          document.getElementById("shopName").value = data.shopName || "";
+          document.getElementById("phoneNumber2").value = data.phoneNumber2 || "";
+          document.getElementById("customerAddress1").value = data.customerAddress1 || "";
+          document.getElementById("customerAddress2").value = data.customerAddress2 || "";
+          document.getElementById("taxID").value = data.taxID || "";
+          document.getElementById("changePhoneQuestion").style.display = "block";
+          changePhoneCheckbox.checked = false;
+        } else {
+          showCustomAlert("No customer found for this phone number.");
+          document.getElementById("changePhoneQuestion").style.display = "none";
+        }
+      }).fetchCustomerDataByPhone(phone);
+    }
+
+    function togglePhoneNumberEdit() {
+      var phoneNumberEdit = document.getElementById("phoneNumberEdit");
+      var changePhoneCheckbox = document.getElementById("changePhoneNumber");
+
+      if (changePhoneCheckbox.checked) {
+        phoneNumberEdit.style.display = "block";
+      } else {
+        phoneNumberEdit.style.display = "none";
+      }
+    }
+
+    function resetCustomerForm() {
+      document.getElementById("customerForm").reset();
+      document.getElementById("customerID").value = "";
+      document.getElementById("changePhoneQuestion").style.display = "none";
+      document.getElementById("changePhoneNumber").checked = false;
+      document.getElementById("phoneNumberEdit").style.display = "none";
+    }
+
+    // function saveCustomer() {
+    //   console.log("Save Customer function called");
+    //   var customerid = document.getElementById("customerID").value.trim();
+    //   var phone = document.getElementById("phoneNumber").value.trim();
+    //   var phone2 = document.getElementById("phoneNumber2").value.trim();
+    //   var name = document.getElementById("customerName").value.trim();
+    //   var shopname = document.getElementById("shopName").value.trim();
+    //   var address1 = document.getElementById("customerAddress1").value.trim();
+    //   var address2 = document.getElementById("customerAddress2").value.trim();
+    //   var taxid = document.getElementById("taxID").value.trim();
+    //   var changePhoneChecked = document.getElementById("changePhoneNumber").checked;
+    //   var newPhone = document.getElementById("newPhoneNumber").value.trim();
+
+    //   if (!phone || !name || !address1) {
+    //     showCustomAlert("Please fill in all required fields.");
+    //     return;
+    //   }
+
+    //   if (changePhoneChecked && !newPhone) {
+    //     showCustomAlert("Please enter a new phone number.");
+    //     return;
+    //   }
+
+    //   function finalSuccess() {
+    //     showCustomAlert("Customer saved successfully!");
+    //     resetCustomerForm(); // <-- Reset the form only after alert
+    //   }
+
+    //   function saveCustomerData(updatedPhone) {
+    //     var customerData = {
+    //       customerID: customerid,
+    //       phoneNumber: updatedPhone,
+    //       phoneNumber2: phone2,
+    //       customerName: name,
+    //       shopName: shopname,
+    //       customerAddress1: address1,
+    //       customerAddress2: address2,
+    //       taxID: taxid
+    //     };
+    //     google.script.run.withSuccessHandler(finalSuccess).createOrUpdateCustomer(customerData);
+    //   }
+
+    //   if (changePhoneChecked) {
+    //     google.script.run.withSuccessHandler(function(response) {
+    //       document.getElementById("phoneNumber").value = newPhone;
+    //       document.getElementById("phoneNumberEdit").style.display = "none";
+    //       document.getElementById("changePhoneNumber").checked = false;
+    //       document.getElementById("changePhoneQuestion").style.display = "none";
+    //       saveCustomerData(newPhone);
+    //     }).updatePhoneNumber(customerid, newPhone);
+    //   } else {
+    //     saveCustomerData(phone);
+    //   }
+    // }
+
+function saveCustomer() {
+  console.log("Save Customer function called");
+
+  var customerid = document.getElementById("customerID").value.trim();
+  var phone = document.getElementById("phoneNumber").value.trim();
+  var phone2 = document.getElementById("phoneNumber2").value.trim();
+  var name = document.getElementById("customerName").value.trim();
+  var shopname = document.getElementById("shopName").value.trim();
+  var address1 = document.getElementById("customerAddress1").value.trim();
+  var address2 = document.getElementById("customerAddress2").value.trim();
+  var taxid = document.getElementById("taxID").value.trim();
+  var changePhoneChecked = document.getElementById("changePhoneNumber").checked;
+  var newPhone = document.getElementById("newPhoneNumber").value.trim();
+
+  if (!phone || !name || !address1) {
+    showCustomAlert("Please fill in all required fields.");
+    return;
+  }
+
+  if (changePhoneChecked && !newPhone) {
+    showCustomAlert("Please enter a new phone number.");
+    return;
+  }
+
+  function finalSuccess(response) {
+    console.log("✅ Customer save successful:", response);
+
+    // Determine if it's a new or existing customer
+    var isNewCustomer = !customerid;
+
+    if (isNewCustomer) {
+      showCustomAlert("New customer created successfully!");
+    } else {
+      showCustomAlert("Customer updated successfully!");
+    }
+
+    resetCustomerForm();
+  }
+
+  function handleError(error) {
+    console.error("❌ Error saving customer:", error.message || error);
+    showCustomAlert("Failed to save customer. Please try again.");
+  }
+
+  function saveCustomerData(updatedPhone) {
+    var customerData = {
+      customerID: customerid,
+      phoneNumber: updatedPhone,
+      phoneNumber2: phone2,
+      customerName: name,
+      shopName: shopname,
+      customerAddress1: address1,
+      customerAddress2: address2,
+      taxID: taxid
+    };
+
+    google.script.run
+      .withSuccessHandler(finalSuccess)
+      .withFailureHandler(handleError)
+      .createOrUpdateCustomer(customerData);
+  }
+
+  if (changePhoneChecked) {
+    google.script.run
+      .withSuccessHandler(function(response) {
+        console.log("✅ Phone updated successfully:", response);
+        document.getElementById("phoneNumber").value = newPhone;
+        document.getElementById("phoneNumberEdit").style.display = "none";
+        document.getElementById("changePhoneNumber").checked = false;
+        document.getElementById("changePhoneQuestion").style.display = "none";
+        saveCustomerData(newPhone);
+      })
+      .withFailureHandler(handleError)
+      .updatePhoneNumber(customerid, newPhone);
+  } else {
+    saveCustomerData(phone);
+  }
+}
+``
+
+
+
+  </script>
+</head>
+
+<body>
+  <p><a href='<?= url ?>'>Back to order page</a></p>
+  <hr>
+  <h2>Customer Management</h2>
+  <form id="customerForm">
+    <div class="container">
+      <div class="column">
+        <label for="phoneNumber">Phone Number <span style="color: red;">**</span></label>
+        <input type="text" id="phoneNumber" placeholder="Enter phone number" oninput="fetchPhoneSuggestions()" />
+        <div id="phoneSuggestions"></div>
+
+        <label for="phoneNumber2">Phone Number 2</label>
+        <input type="text" id="phoneNumber2" placeholder="Enter phone number 2 (if any)" />
+
+        <label for="customerName">Customer Name <span style="color: red;">**</span></label>
+        <input type="text" id="customerName" placeholder="Enter customer name" />
+
+        <label for="shopName">Shop Name</label>
+        <input type="text" id="shopName" placeholder="Enter shop name (if any)" />
+
+        <div id="changePhoneQuestion" style="display: none;">
+          <div class="change-phone-container">
+            <input type="checkbox" id="changePhoneNumber" onclick="togglePhoneNumberEdit()">
+            <label for="changePhoneNumber">Do you want to change primary phone number?</label>
+          </div>
+
+          <div id="phoneNumberEdit" style="display: none;">
+            <label for="newPhoneNumber">New Phone Number <span style="color: red;">**</span></label>
+            <input type="text" id="newPhoneNumber" placeholder="Enter new phone number" />
+          </div>
+        </div>
+      </div>
+
+      <div class="column">
+        <label for="customerAddress">Address 1 <span style="color: red;">**</span></label>
+        <input type="text" id="customerAddress1" placeholder="Enter customer address" />
+
+        <label for="customerAddress2">Address 2</label>
+        <input type="text" id="customerAddress2" placeholder="Enter customer address (if any)" />
+
+        <label for="taxID">Tax ID</label>
+        <input type="text" id="taxID" placeholder="Enter Tax ID (if any)" />
+
+        <label for="customerID">Customer ID (auto if existing customer)</label>
+        <input type="text" id="customerID" readonly />
+      </div>
+    </div>
+
+    <button type="button" onclick="saveCustomer()">Save Customer</button>
+  </form>
+
+  <div id="customAlert">
+    <p id="alertMessage"></p>
+    <button id="customAlertButton" onclick="closeAlert()">OK</button>
+  </div>
+</body>
+
+</html>
