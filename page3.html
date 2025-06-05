@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+      }
+
+      h2 {
+        text-align: center;
+        color: #333;
+      }
+
+      table {
+        width: 750px;
+        border-collapse: collapse;
+        background: white;
+        margin: 0 auto;
+      }
+
+      th, td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: center;
+      }
+
+      th {
+        background-color: #4CAF50;
+        color: white;
+      }
+
+      input {
+        width: 90%;
+        padding: 5px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 12px;
+      }
+
+      button {
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      .green {
+        background-color: #28a745;
+      }
+
+      .green:hover {
+        background-color: #218838;
+      }
+
+      .top-actions {
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        width: 750px;
+        margin: 0 auto 15px auto;
+      }
+
+      /* Custom Alert & Confirm Backdrop */
+      #customAlert, #customConfirm {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+      }
+
+      /* Alert & Confirm Boxes */
+      #customAlertBox, #customConfirmBox {
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 400px;
+        max-width: 90%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0px 0px 15px rgba(0,0,0,0.3);
+      }
+
+      #customAlertBox button, #customConfirmBox button {
+        margin: 10px 5px 0;
+        padding: 8px 20px;
+      }
+
+      #saveChangesBtn {
+        /* margin-top: 15px; */
+        display: none;
+      }
+
+      /* Input fields inside confirm for new product */
+      #customConfirmBox input {
+        width: 80%;
+        padding: 7px;
+        margin: 8px 0;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+      }
+    </style>
+    <script>
+      let ordersData = [];
+      let editedOrders = {};
+
+      // Fetch products from server
+      function fetchProducts() {
+        google.script.run.withSuccessHandler(function(products) {
+          ordersData = products.sort((a,b) => a.productID.localeCompare(b.productID));
+          renderTable();
+        }).getProducts();
+      }
+
+      // Render product table
+      function renderTable() {
+        const table = document.getElementById("ordersTable");
+        table.innerHTML = `
+          <tr>
+            <th>Product ID</th>
+            <th>Product Name</th>
+            <th>Price</th>
+            <th>Actions</th>
+          </tr>
+        `;
+
+        ordersData.forEach(product => {
+          const isEditing = !!editedOrders[product.productID];
+          const row = table.insertRow();
+
+          if (isEditing) {
+  row.innerHTML = `
+    <td>${product.productID}</td>
+    <td><input value="${product.productName}" data-id="${product.productID}" data-field="productName"></td>
+    <td><input value="${product.price}" data-id="${product.productID}" data-field="price"></td>
+    <td>
+      <span style="cursor: pointer; color: orange;" onclick="toggleEdit('${product.productID}')">❌ Cancel</span>
+    </td>
+  `;
+} else {
+  row.innerHTML = `
+    <td>${product.productID}</td>
+    <td>${product.productName}</td>
+    <td>${product.price}</td>
+    <td>
+      <span style="cursor:pointer; color:blue;" onclick="toggleEdit('${product.productID}')">✏️</span>
+      <span style="cursor:pointer; color:red; margin-left: 10px;" onclick="confirmDeleteProduct('${product.productID}')">🗑️</span>
+    </td>
+  `;
+}
+
+        });
+
+        document.getElementById("saveChangesBtn").style.display = Object.keys(editedOrders).length ? "inline" : "none";
+      }
+
+      // Toggle edit mode on/off for a product
+      function toggleEdit(productId) {
+        if(editedOrders[productId]) {
+          delete editedOrders[productId];
+        } else {
+          // Clone the object to avoid direct mutation before save
+          editedOrders[productId] = {...ordersData.find(p => p.productID === productId)};
+        }
+        renderTable();
+      }
+
+      // Save all edited products
+      function saveAllChanges() {
+        // Update editedOrders from input values
+        const inputs = document.querySelectorAll("input[data-id]");
+        inputs.forEach(input => {
+          const id = input.getAttribute("data-id");
+          const field = input.getAttribute("data-field");
+          if(!editedOrders[id]) editedOrders[id] = { productID: id };
+          editedOrders[id][field] = input.value.trim();
+        });
+
+        const productsToUpdate = Object.values(editedOrders);
+        if(productsToUpdate.length === 0) return;
+
+        Promise.all(productsToUpdate.map(product => 
+          new Promise((resolve, reject) =>
+            google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).updateProduct(product)
+          )
+        ))
+        .then(() => {
+          showCustomAlert("Successfully saved.");
+          editedOrders = {};
+          fetchProducts();
+        })
+        .catch(() => {
+          showCustomAlert("Something went wrong.");
+        });
+      }
+
+      // Show form to add new product
+      function showNewProductForm() {
+        // Show confirm dialog with inputs for new product
+        showCustomConfirm(
+          // Message HTML with inputs
+          `
+          <p><strong>เพิ่มสินค้าใหม่</strong></p>
+          <input type="text" id="newProductName" placeholder="Product Name" /><br/>
+          <input type="number" id="newProductPrice" placeholder="Price" /><br/>
+          `,
+          function(confirmed) {
+            if(confirmed) {
+              const productName = document.getElementById("newProductName").value.trim();
+              const price = document.getElementById("newProductPrice").value.trim();
+
+              if(!productName || !price) {
+                showCustomAlert("Please fill in all required fields.");
+                return;
+              }
+
+              const newProduct = { productName, price };
+              google.script.run.withSuccessHandler(() => {
+                showCustomAlert("Successfully added product.");
+                fetchProducts();
+              }).withFailureHandler(() => {
+                showCustomAlert("Failed to add product, please try again.");
+              }).addNewProduct(newProduct);
+            }
+          },
+          true // customContentMode = true, so confirm dialog won't replace content but append inputs
+        );
+      }
+
+      // Confirm delete product with central confirm dialog
+      function confirmDeleteProduct(productId) {
+        showCustomConfirm(`Are you sure you want to delete product ID <strong>${productId}</strong>?`, function(confirmed) {
+          if(confirmed) {
+            google.script.run.withSuccessHandler(() => {
+              showCustomAlert("Product deleted successfully.");
+              fetchProducts();
+            }).withFailureHandler(() => {
+              showCustomAlert("Failed to delete product.");
+            }).deleteProduct(productId);
+          }
+        }, false);
+      }
+
+      // Close confirm dialog
+      function closeConfirm() {
+        const confirm = document.getElementById("customConfirm");
+        confirm.style.display = "none";
+        // Clear content except buttons and message for reuse
+        resetConfirmContent();
+      }
+
+      // Show custom alert
+      function showCustomAlert(message) {
+        const alert = document.getElementById("customAlert");
+        document.getElementById("customAlertMessage").innerHTML = message;
+        alert.style.display = "block";
+      }
+
+      // Close alert dialog
+      function closeAlert() {
+        document.getElementById("customAlert").style.display = "none";
+      }
+
+      // Reset confirm content to default state (message + buttons)
+      function resetConfirmContent() {
+        const box = document.getElementById("customConfirmBox");
+        box.innerHTML = `
+          <p id="customConfirmMessage"></p>
+          <button class="green" id="customConfirmYes">Yes</button>
+          <button id="customConfirmNo">Cancel</button>
+        `;
+      }
+
+      /**
+       * showCustomConfirm(message, callback, customContentMode)
+       * - message: string (can contain html)
+       * - callback: function(boolean) called on yes/no
+       * - customContentMode: boolean (optional)
+       * 
+       * If customContentMode = true, then the content is replaced with message + buttons,
+       * otherwise it just fills message and shows buttons for default confirm
+       */
+      function showCustomConfirm(message, callback, customContentMode = false) {
+        const confirm = document.getElementById("customConfirm");
+        const box = document.getElementById("customConfirmBox");
+
+        if(!customContentMode) {
+          // default confirm mode (message + buttons)
+          resetConfirmContent();
+          document.getElementById("customConfirmMessage").innerHTML = message;
+
+          document.getElementById("customConfirmYes").onclick = () => {
+            confirm.style.display = "none";
+            callback(true);
+          };
+
+          document.getElementById("customConfirmNo").onclick = () => {
+            confirm.style.display = "none";
+            callback(false);
+          };
+        } else {
+          // custom content mode
+          box.innerHTML = message + `
+            <button class="green" id="customConfirmYes">Yes</button>
+            <button id="customConfirmNo">Cancel</button>
+          `;
+
+          document.getElementById("customConfirmYes").onclick = () => {
+            confirm.style.display = "none";
+            callback(true);
+          };
+
+          document.getElementById("customConfirmNo").onclick = () => {
+            confirm.style.display = "none";
+            callback(false);
+          };
+        }
+
+        confirm.style.display = "block";
+      }
+
+      window.onload = fetchProducts;
+    </script>
+  </head>
+  <body>
+    
+  <p><a href='<?= url ?>'>Back to order page</a></p>
+  <hr>
+    <h2>Product Management</h2>
+
+    <div class="top-actions">
+      <button class="green" onclick="showNewProductForm()">➕ Add Product</button>
+      <button id="saveChangesBtn" onclick="saveAllChanges()">Save Change</button>
+    </div>
+
+    <table id="ordersTable"></table>
+
+    <!-- Custom Alert -->
+    <div id="customAlert">
+      <div id="customAlertBox">
+        <p id="customAlertMessage"></p>
+        <button onclick="closeAlert()">OK</button>
+      </div>
+    </div>
+
+    <!-- Custom Confirm -->
+    <div id="customConfirm">
+      <div id="customConfirmBox">
+        <!-- content will be injected dynamically -->
+      </div>
+    </div>
+  </body>
+</html>
