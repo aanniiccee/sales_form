@@ -79,6 +79,7 @@
       width: 20%;
       display: block;
       text-align: center;
+      margin: 5px;
     }
 
     .button-container {
@@ -86,6 +87,7 @@
       justify-content: center;
       margin-top: 20px;
       margin-bottom: 20px;
+      gap: 10px;
     }
 
     .menu-container {
@@ -135,21 +137,20 @@
     }
 
     .textbox-link {
-      display: block;
-      padding: 10px;
-      width: 200px;
-      border: 1px solid #ccc;
+      background-color: #007BFF;
+      color: white;
+      border: none;
       border-radius: 5px;
-      text-align: center;
-      background-color: white;
-      color: black;
-      text-decoration: none;
       font-size: 16px;
-      margin-right: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      text-align: center;
+      width: auto;
+      display: inline-block;
     }
 
     .textbox-link:hover {
-      background-color: #f0f0f0;
+      background-color: #0056b3;
     }
 
     /* Phone Suggestions */
@@ -167,7 +168,7 @@
     #productsTable th, #productsTable td {
       padding: 10px;
       text-align: center;
-      }
+    }
       
     #productsTable th:nth-child(1), #productsTable td:nth-child(1),
     #productsTable th:nth-child(3), #productsTable td:nth-child(3),
@@ -191,36 +192,28 @@
     ];
 
     window.onload = function() {
-  const container = document.querySelector('.button-container');
-  container.innerHTML = "";
+      const container = document.querySelector('.button-container');
+      container.innerHTML = "";
 
-  const urls = [
-    "customer.html",
-    "order.html",
-    "product.html"
-  ];
+      const linkNames = ["Customer Management", "Order Management", "Product Management"];
 
-  const linkNames = ["Customer Management", "Order Management", "Product Management"];
+      for(let i = 0; i < urls.length && i < 3; i++) {
+        let btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "textbox-link";
+        btn.textContent = linkNames[i];
+        btn.onclick = function() {
+          window.location.href = urls[i];
+        };
+        container.appendChild(btn);
+      }
 
-  for(let i = 0; i < urls.length && i < 3; i++) {
-    let btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "textbox-link";
-    btn.textContent = linkNames[i];
-    btn.onclick = function() {
-      window.location.href = urls[i];
+      fetchProducts();
+      document.getElementById("orderDate").value = new Date().toISOString().split("T")[0];
     };
-    container.appendChild(btn);
-  }
-
-  fetchProducts();
-  document.getElementById("orderDate").value = new Date().toISOString().split("T")[0];
-};
 
 
-    // ฟังก์ชันอื่น ๆ ของคุณตามที่มีอยู่ในโค้ดเดิม (ผมตัดเพื่อความกระชับ แต่คุณสามารถนำโค้ดที่เหลือไว้ด้านล่างได้เลย)
-
-      function showCustomAlert(message) {
+    function showCustomAlert(message) {
       var alertDiv = document.getElementById("customAlert");
       var alertMessage = document.getElementById("alertMessage");
       alertMessage.textContent = message; // Set the message dynamically
@@ -228,59 +221,55 @@
       document.getElementById("customAlertButton").focus(); // Focus on the button for accessibility
     }
 
-    // Function to close the alert
     function closeAlert() {
       document.getElementById("customAlert").style.display = "none"; // Hide the alert
     }
 
-    
+
     function fetchPhoneSuggestions() {
-  var phoneInput = document.getElementById("phoneNumber");
-  var query = phoneInput.value.trim();
-  var suggestionsDiv = document.getElementById("phoneSuggestions");
+      var phoneInput = document.getElementById("phoneNumber");
+      var query = phoneInput.value.trim();
+      var suggestionsDiv = document.getElementById("phoneSuggestions");
 
-  if (!query) {
-    suggestionsDiv.style.display = "none";
-    return;
-  }
+      if (!query) {
+        suggestionsDiv.style.display = "none";
+        return;
+      }
 
-  // Call Google Apps Script function to get matching phone numbers
-  google.script.run.withSuccessHandler(function(phoneNumbers) {
-    suggestionsDiv.innerHTML = ""; // Clear previous suggestions
+      // Call Google Apps Script function to get matching phone numbers
+      google.script.run.withSuccessHandler(function(phoneNumbers) {
+        suggestionsDiv.innerHTML = ""; // Clear previous suggestions
 
-    if (phoneNumbers.length > 0) {
-      suggestionsDiv.style.display = "block";
-      suggestionsDiv.style.position = "absolute";
-      suggestionsDiv.style.width = phoneInput.offsetWidth + "px";
+        if (phoneNumbers.length > 0) {
+          suggestionsDiv.style.display = "block";
+          suggestionsDiv.style.position = "absolute";
+          suggestionsDiv.style.width = phoneInput.offsetWidth + "px";
 
-      phoneNumbers.forEach(function(phoneNumber) {
-        var suggestionItem = document.createElement("div");
-        suggestionItem.textContent = phoneNumber;
-        suggestionItem.style.padding = "10px";
-        suggestionItem.style.cursor = "pointer";
-        suggestionItem.style.borderBottom = "1px solid #ddd";
-        suggestionItem.style.background = "#fff";
+          phoneNumbers.forEach(function(phoneNumber) {
+            var suggestionItem = document.createElement("div");
+            suggestionItem.textContent = phoneNumber;
+            suggestionItem.style.padding = "10px";
+            suggestionItem.style.cursor = "pointer";
+            suggestionItem.style.borderBottom = "1px solid #ddd";
+            suggestionItem.style.background = "#fff";
 
-        suggestionItem.onclick = function() {
-          phoneInput.value = phoneNumber; // Set the selected phone number
-          suggestionsDiv.style.display = "none"; // Hide suggestions
-          fetchCustomer(); // Fetch customer data once phone number is selected
-        };
+            suggestionItem.onclick = function() {
+              phoneInput.value = phoneNumber; // Set the selected phone number
+              suggestionsDiv.style.display = "none"; // Hide suggestions
+              fetchCustomer(); // Fetch customer data once phone number is selected
+            };
 
-        suggestionsDiv.appendChild(suggestionItem);
-      });
-    } else {
-      suggestionsDiv.style.display = "none"; // Hide if no matches
-      document.getElementById("customAlert").style.display = "block";
-      // alert("No customer found with this phone number. Please create a new customer.");
-      // window.location.href = "customer_creation_page.html"; // Redirect to customer creation page
-      showCustomAlert("No customer found with this phone number. Please create a new customer.");
+            suggestionsDiv.appendChild(suggestionItem);
+          });
+        } else {
+          suggestionsDiv.style.display = "none"; // Hide if no matches
+          showCustomAlert("No customer found with this phone number. Please create a new customer.");
+        }
+      }).getMatchingPhoneNumbers(query);
     }
-  }).getMatchingPhoneNumbers(query);
-}
 
 
-  function fetchCustomer() {
+    function fetchCustomer() {
       var phone = document.getElementById("phoneNumber").value.trim();
       if (!phone) return;
 
@@ -323,200 +312,132 @@
     function fetchProducts() {
       google.script.run.withSuccessHandler(function(products) {
         var table = document.getElementById("productsTable");
+        // ลบแถวสินค้าที่มีอยู่ก่อนหน้า (ยกเว้นแถว header)
+        while(table.rows.length > 1) {
+          table.deleteRow(1);
+        }
         products.forEach(function(product) {
           var row = table.insertRow();
           row.innerHTML = 
-            <td>${product.productID}</td>
+            `<td>${product.productID}</td>
             <td>${product.productName}</td>
             <td>${product.price}</td>
-            <td><input type="number" min="0" value="" class="quantity-input" oninput="calculateTotal(this, ${product.price})"></td>
-            // <td><input type="number" min="0" value="" oninput="calculateTotal(this, ${product.price})"></td>
-            <td class="totalPrice">0</td>
-          ;
+            <td><input type="number" min="0" value="0" class="quantity" oninput="updateAmount(this)"></td>
+            <td class="amount">0</td>`;
         });
       }).getProducts();
     }
 
-    function calculateTotal(input, price) {
-      var quantity = parseInt(input.value) || 0;
-      var totalCell = input.parentNode.nextElementSibling;
-      totalCell.innerText = (quantity * price).toFixed(2);
-      updateSummary(); // Update total price when quantity changes
+    function updateAmount(input) {
+      var row = input.closest("tr");
+      var price = parseFloat(row.cells[2].textContent);
+      var qty = parseInt(input.value) || 0;
+      row.querySelector(".amount").textContent = (price * qty).toFixed(2);
     }
 
-    function updateSummary() {
-      var rows = document.getElementById("productsTable").rows;
-      var total = 0;
-
-      for (var i = 1; i < rows.length; i++) {
-        total += parseFloat(rows[i].cells[4].innerText) || 0;
-      }
-
-      document.getElementById("totalPrice").value = total.toFixed(2);
-      calculateFinalTotal();
-    }
-
-    function calculateFinalTotal() {
-      var total = parseFloat(document.getElementById("totalPrice").value) || 0;
-      var deliveryFee = parseFloat(document.getElementById("deliveryFee").value) || 0;
-      document.getElementById("finalPrice").value = (total + deliveryFee).toFixed(2);
-    }
-
-    function closeAlert() {
-    document.getElementById("customAlert").style.display = "none";
-    }
-
-
-    // Modified function to replace alert() with custom alerts
     function saveOrder() {
       var phone = document.getElementById("phoneNumber").value.trim();
-      var deliveryFee = document.getElementById("deliveryFee").value.trim();
-      var hasQuantity = false;
-
-      var rows = document.getElementById("productsTable").rows;
-      for (var i = 1; i < rows.length; i++) {
-        var quantity = parseInt(rows[i].cells[3].children[0].value) || 0;
-        if (quantity > 0) {
-          hasQuantity = true;
-          break;
-        }
-      }
-
-      // Custom alerts for missing fields
       if (!phone) {
-        showCustomAlert("Please enter a phone number.");
-        return;
-      }
-      if (!deliveryFee) {
-        showCustomAlert("Please enter a delivery fee.");
-        return;
-      }
-      if (!hasQuantity) {
-        showCustomAlert("Please enter at least one product quantity.");
+        showCustomAlert("Please enter phone number.");
         return;
       }
 
-      var orderData = {
-        orderDate: document.getElementById("orderDate").value,
-        phoneNumber: phone,
-        customerID: document.getElementById("customerID").value,
-        address: document.getElementById("addressDropdown").value,
-        newAddress: document.getElementById("newAddress").value,
-        deliveryFee: deliveryFee,
-        totalPrice: document.getElementById("totalPrice").value,
-        paymentLeadTime: document.getElementById("paymentLeadTime").value, 
-        orderChannel: document.getElementById("orderChannel").value, 
-        customerType: document.getElementById("custType").value, 
-        note: document.getElementById("note").value, 
+      var productRows = document.querySelectorAll("#productsTable tr");
+      var hasOrder = false;
+      var orderDetails = [];
 
-        products: []
-      };
-
-      for (var i = 1; i < rows.length; i++) {
-        var cells = rows[i].cells;
-        var quantity = parseInt(cells[3].children[0].value) || 0;
-        if (quantity > 0) {
-          orderData.products.push({
-            productID: cells[0].innerText,
-            productName: cells[1].innerText,
-            price: parseFloat(cells[2].innerText),
-            quantity: quantity,
-            totalPrice: parseFloat(cells[4].innerText)
+      productRows.forEach((row, index) => {
+        if (index === 0) return; // skip header row
+        var productID = row.cells[0].textContent;
+        var qtyInput = row.querySelector(".quantity");
+        var qty = parseInt(qtyInput.value) || 0;
+        if (qty > 0) {
+          hasOrder = true;
+          orderDetails.push({
+            productID: productID,
+            quantity: qty
           });
         }
+      });
+
+      if (!hasOrder) {
+        showCustomAlert("Please select at least one product quantity greater than zero.");
+        return;
       }
 
-    google.script.run.withSuccessHandler(function(response) {
-    showCustomAlert("Order submitted successfully!");
-
-    // Reset all input fields
-    document.getElementById("phoneNumber").value = "";
-    document.getElementById("customerID").value = "";
-    document.getElementById("customerName").value = "";
-    document.getElementById("addressDropdown").innerHTML = "";
-    document.getElementById("newAddress").value = "";
-    document.getElementById("deliveryFee").value = "";
-    document.getElementById("totalPrice").value = "0.00";
-    document.getElementById("finalPrice").value = "0.00";
-
-    document.getElementById("paymentLeadTime").value = "";
-    document.getElementById("orderChannel").value = "Facebook"; // Default option
-    document.getElementById("custType").value = "B2C"; // Default option
-    document.getElementById("note").value = "";
-
-    // Clear product quantities and total prices
-    let rows = document.querySelectorAll("#productsTable tr");
-    rows.forEach((row, index) => {
-        if (index > 0) {
-            row.cells[3].children[0].value = ""; // Clear quantity input
-            row.cells[4].innerText = "0.00"; // Clear total price for each product
+      // Call Apps Script function to save order (คุณต้องเขียนฟังก์ชัน saveOrder ใน Google Apps Script)
+      google.script.run.withSuccessHandler(function(response) {
+        if(response === "success") {
+          showCustomAlert("Order saved successfully!");
+          // reset form หรือทำอย่างอื่นตามต้องการ
+        } else {
+          showCustomAlert("Failed to save order: " + response);
         }
-    });
-
-}).saveOrder(orderData);
-
-      }
-    
-    window.onload = function() {
-      fetchProducts();
-      document.getElementById("orderDate").value = new Date().toISOString().split("T")[0];
-    };
-    // ... (โค้ดฟังก์ชันอื่น ๆ ที่คุณมี เช่น fetchPhoneSuggestions, fetchCustomer, saveOrder ฯลฯ)
-
+      }).saveOrder({
+        phone: phone,
+        orderDate: document.getElementById("orderDate").value,
+        address: (document.getElementById("addressDropdown").value === "NEW") ? document.getElementById("newAddress").value : document.getElementById("addressDropdown").value,
+        details: orderDetails
+      });
+    }
   </script>
 </head>
 
 <body>
-
+  <!-- ปุ่มลิงก์แยกมาไว้บนสุด -->
   <div class="button-container">
-    <!-- ลิงก์จะถูกสร้างที่นี่โดย JavaScript -->
+    <!-- ปุ่มจะถูกสร้างที่นี่โดย JS -->
   </div>
 
-  <hr>
   <h2>New Order</h2>
-  <form id="orderForm">
+
+  <form id="orderForm" onsubmit="return false;">
     <div class="container">
       <div class="column">
-        <label>Phone Number <span style="color: red;">**</span></label>
-        <input type="text" id="phoneNumber" oninput="fetchPhoneSuggestions()" autocomplete="off" placeholder="Enter phone number">
-        <div id="phoneSuggestions"></div>
+        <div class="form-group">
+          <label for="phoneNumber">Phone Number</label>
+          <input id="phoneNumber" name="phoneNumber" type="text" placeholder="Enter phone number" required
+            oninput="fetchPhoneSuggestions()" autocomplete="off">
+          <div id="phoneSuggestions"></div>
+        </div>
 
-        <label>Order Date</label>
-        <input type="date" id="orderDate">
-        <input type="hidden" id="customerID">
-        <label>Customer Name</label>
-        <input type="text" id="customerName" readonly>
-        <label>Delivery Address</label>
-        <select id="addressDropdown" onchange="toggleNewAddress()" ></select>
-        <input type="text" id="newAddress" style="display: none;" placeholder="Enter new address">
-      </div>
-      
-      <div class="column">
-        <label>Payment Lead-Time</label>
-        <input type="number" id="paymentLeadTime" placeholder="Enter payment lead-time">
-        <label>Order Channel</label>
-        <select id="orderChannel">
-          <option value="Facebook">Facebook</option>
-          <option value="Line">Line</option>
-          <option value="Other">Other</option>
-        </select>
-        <label>Customer Type</label>
-        <select id="custType">
-          <option value="B2C">B2C</option>
-          <option value="B2B">B2B</option>
-        </select>
+        <div class="form-group">
+          <label for="customerID">Customer ID</label>
+          <input type="text" id="customerID" name="customerID" readonly>
+        </div>
 
-        <label>Note</label>
-        <input type="text" id="note" placeholder="Enter any notes">
+        <div class="form-group">
+          <label for="customerName">Customer Name</label>
+          <input type="text" id="customerName" name="customerName" readonly>
+        </div>
+
+        <div class="form-group">
+          <label for="addressDropdown">Address</label>
+          <select id="addressDropdown" name="addressDropdown" onchange="toggleNewAddress()"></select>
+          <input type="text" id="newAddress" name="newAddress" placeholder="Enter new address" style="display:none; margin-top:10px;">
+        </div>
+
+        <div class="form-group">
+          <label for="orderDate">Order Date</label>
+          <input id="orderDate" name="orderDate" type="date" readonly>
+        </div>
       </div>
 
       <div class="column">
-        <label>Total Product Price</label>
-        <input type="text" id="totalPrice" readonly value="0.00">
-        <label>Delivery Fee <span style="color: red;">**</span></label>
-        <input type="number" id="deliveryFee" oninput="calculateFinalTotal()" placeholder="Enter delivery fee">
-        <label>Final Price</label>
-        <input type="text" id="finalPrice" readonly value="0.00">
+        <table id="productsTable" border="1" style="margin-top:10px;">
+          <thead>
+            <tr>
+              <th>Product ID</th>
+              <th>Product Name</th>
+              <th>Price</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- แถวสินค้าจะถูกเติมที่นี่โดย fetchProducts() -->
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -525,18 +446,8 @@
     </div>
   </form>
 
-  <table border="1" id="productsTable">
-    <tr>
-      <th>Product ID</th>
-      <th>Product Name</th>
-      <th>Price</th>
-      <th>Quantity</th>
-      <th>Total</th>
-    </tr>
-  </table>
-
   <div id="customAlert">
-    <p id="alertMessage">Please fill in the required fields!</p>
+    <p id="alertMessage"></p>
     <button id="customAlertButton" onclick="closeAlert()">OK</button>
   </div>
 
