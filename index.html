@@ -176,20 +176,19 @@
   </style>
 
   <script>
-    // ลิงก์ของแต่ละหน้า สามารถแก้ไขให้เป็น url จริงของคุณได้เลย
-    const urls = [
-      "customer.html",
-      "order.html",
-      "product.html"
-    ];
+    const API_URL = "https://script.google.com/macros/s/AKfycbzbQ3_v8k_2w9PRFh1X0no1JFsJEh4SI5jcxX_iadWpAM0idqpr7Usm-6zuCHosDjXS/exec";
 
     window.onload = function() {
-      // สร้างลิงก์จาก urls array
+      // สร้างลิงก์เมนู
       const container = document.querySelector('.button-container');
-      container.innerHTML = ""; // เคลียร์ก่อน
+      container.innerHTML = "";
 
+      const urls = [
+        "customer.html",
+        "order.html",
+        "product.html"
+      ];
       const linkNames = ["Customer Management", "Order Management", "Product Management"];
-
       for(let i = 0; i < urls.length && i < 3; i++) {
         let a = document.createElement("a");
         a.href = urls[i];
@@ -200,167 +199,323 @@
 
       fetchProducts();
       document.getElementById("orderDate").value = new Date().toISOString().split("T")[0];
+
+      // ปิด dropdown เบอร์โทรเมื่อคลิกนอก
+      document.addEventListener('click', (e) => {
+        if (!document.getElementById("phoneSuggestions").contains(e.target) && e.target.id !== "phoneNumber") {
+          document.getElementById("phoneSuggestions").style.display = "none";
+        }
+      });
     };
 
-    // ฟังก์ชันอื่น ๆ ของคุณตามที่มีอยู่ในโค้ดเดิม (ผมตัดเพื่อความกระชับ แต่คุณสามารถนำโค้ดที่เหลือไว้ด้านล่างได้เลย)
+    async function fetchPhoneSuggestions() {
+      const input = document.getElementById("phoneNumber");
+      const query = input.value.trim();
+      const suggestionsDiv = document.getElementById("phoneSuggestions");
 
-    function showCustomAlert(message) {
-      var alertDiv = document.getElementById("customAlert");
-      var alertMessage = document.getElementById("alertMessage");
-      alertMessage.textContent = message;
-      alertDiv.style.display = "block";
-      document.getElementById("customAlertButton").focus();
-    }
+      if (query.length < 2) {
+        suggestionsDiv.style.display = "none";
+        suggestionsDiv.innerHTML = "";
+        return;
+      }
 
-    function closeAlert() {
-      document.getElementById("customAlert").style.display = "none";
-    }
+      try {
+        const url = `${API_URL}?action=getMatchingPhoneNumbers&query=${encodeURIComponent(query)}`;
+        const res = await fetch(url);
+        const phoneNumbers = await res.json();
 
-    // Call Google Apps Script function to get matching phone numbersMore actions
-      google.script.run.withSuccessHandler(function(phoneNumbers) {
-        suggestionsDiv.innerHTML = ""; // Clear previous suggestions
-
-        if (phoneNumbers.length > 0) {
-          suggestionsDiv.style.display = "block";
-          suggestionsDiv.style.position = "absolute";
-          suggestionsDiv.style.width = phoneInput.offsetWidth + "px";
-
-          phoneNumbers.forEach(function(phoneNumber) {
-            var suggestionItem = document.createElement("div");
-            suggestionItem.textContent = phoneNumber;
-            suggestionItem.style.padding = "10px";
-            suggestionItem.style.cursor = "pointer";
-            suggestionItem.style.borderBottom = "1px solid #ddd";
-            suggestionItem.style.background = "#fff";
-
-            suggestionItem.onclick = function() {
-              phoneInput.value = phoneNumber; // Set the selected phone number
-              suggestionsDiv.style.display = "none"; // Hide suggestions
-              fetchCustomer(); // Fetch customer data once phone number is selected
-            };
-
-            suggestionsDiv.appendChild(suggestionItem);
-          });
-        } else {
-          suggestionsDiv.style.display = "none"; // Hide if no matches
-          showCustomAlert("No customer found with this phone number. Please create a new customer.");
+        if (!phoneNumbers || phoneNumbers.length === 0) {
+          suggestionsDiv.style.display = "none";
+          suggestionsDiv.innerHTML = "";
+          return;
         }
-      }).getMatchingPhoneNumbers(query);
-    }
 
+        suggestionsDiv.innerHTML = "";
+        phoneNumbers.forEach(phone => {
+          const div = document.createElement("div");
+          div.textContent = phone;
+          div.style.padding = "5px";
+          div.style.cursor = "pointer";
+          div.onclick = () => {
+            input.value = phone;
+            suggestionsDiv.style.display = "none";
+            suggestionsDiv.innerHTML = "";
+            fetchCustomerData(phone);
+          };
+          suggestionsDiv.appendChild(div);
+        });
+        suggestionsDiv.style.display = "block";
 
-    function fetchCustomer() {
-      var phone = document.getElementById("phoneNumber").value.trim();
-      if (!phone) return;
-
-      google.script.run.withSuccessHandler(function(data) {
-        if (data) {
-          document.getElementById("customerID").value = data.customerID;
-          document.getElementById("customerName").value = data.customerName;
-
-          var addressDropdown = document.getElementById("addressDropdown");
-          addressDropdown.innerHTML = "";
-
-          data.addresses.forEach(addr => {
-            var option = document.createElement("option");
-            option.value = addr;
-            option.text = addr;
-            addressDropdown.appendChild(option);
-          });
-
-          var newOption = document.createElement("option");
-          newOption.value = "NEW";
-          newOption.text = "Add New Address";
-          addressDropdown.appendChild(newOption);
-        } else {
-          alert("No data found for this phone number.");
-        }
-      }).getCustomerData(phone);
-    }
-
-    function toggleNewAddress() {
-      var dropdown = document.getElementById("addressDropdown");
-      var newAddressInput = document.getElementById("newAddress");
-
-      if (dropdown.value === "NEW") {
-        newAddressInput.style.display = "block";
-      } else {
-        newAddressInput.style.display = "none";
+      } catch (error) {
+        console.error("Error fetching phone suggestions:", error);
+        suggestionsDiv.style.display = "none";
+        suggestionsDiv.innerHTML = "";
       }
     }
 
-    function fetchProducts() {
-      google.script.run.withSuccessHandler(function(products) {
-        var table = document.getElementById("productsTable");
-        // ลบแถวสินค้าที่มีอยู่ก่อนหน้า (ยกเว้นแถว header)
-        while(table.rows.length > 1) {
-          table.deleteRow(1);
+    async function fetchCustomerData(phoneNumber) {
+      if (!phoneNumber) return;
+
+      try {
+        const url = `${API_URL}?action=getCustomerData&phoneNumber=${encodeURIComponent(phoneNumber)}`;
+        const res = await fetch(url);
+        const customer = await res.json();
+
+        if (customer) {
+          document.getElementById("customerID").value = customer.customerID || "";
+          document.getElementById("customerName").value = customer.customerName || "";
+
+          const addressDropdown = document.getElementById("addressDropdown");
+          addressDropdown.innerHTML = "";
+
+          if (customer.addresses && customer.addresses.length > 0) {
+            customer.addresses.forEach(addr => {
+              const option = document.createElement("option");
+              option.value = addr;
+              option.textContent = addr;
+              addressDropdown.appendChild(option);
+            });
+            // เพิ่ม option สำหรับ "เพิ่มที่อยู่ใหม่"
+            const newAddrOption = document.createElement("option");
+            newAddrOption.value = "new";
+            newAddrOption.textContent = "Add new address";
+            addressDropdown.appendChild(newAddrOption);
+
+            addressDropdown.style.display = "block";
+            document.getElementById("newAddress").style.display = "none";
+          } else {
+            addressDropdown.style.display = "none";
+            document.getElementById("newAddress").style.display = "block";
+          }
+        } else {
+          // เคลียร์ฟิลด์ถ้าไม่มีข้อมูล
+          document.getElementById("customerID").value = "";
+          document.getElementById("customerName").value = "";
+          document.getElementById("addressDropdown").innerHTML = "";
+          document.getElementById("newAddress").style.display = "block";
         }
-        products.forEach(function(product) {
-          var row = table.insertRow();
-          row.innerHTML = 
-            `<td>${product.productID}</td>
-            <td>${product.productName}</td>
-            <td>${product.price}</td>
-            <td><input type="number" min="0" value="0" class="quantity" oninput="updateAmount(this)"></td>
-            <td class="amount">0</td>`;
+
+      } catch (error) {
+        console.error("Error fetching customer data:", error);
+      }
+    }
+
+    async function fetchProducts() {
+      try {
+        const url = `${API_URL}?action=getProducts`;
+        const res = await fetch(url);
+        const products = await res.json();
+
+        const table = document.getElementById("productsTableBody");
+        table.innerHTML = "";
+
+        products.forEach(product => {
+          const tr = document.createElement("tr");
+
+          // productID (hidden)
+          const tdID = document.createElement("td");
+          tdID.textContent = product.productID || "";
+          tr.appendChild(tdID);
+
+          // productName
+          const tdName = document.createElement("td");
+          tdName.textContent = product.productName || "";
+          tr.appendChild(tdName);
+
+          // price
+          const tdPrice = document.createElement("td");
+          tdPrice.textContent = product.price ? product.price.toFixed(2) : "0.00";
+          tr.appendChild(tdPrice);
+
+          // quantity input
+          const tdQty = document.createElement("td");
+          const qtyInput = document.createElement("input");
+          qtyInput.type = "number";
+          qtyInput.min = "0";
+          qtyInput.value = "";
+          qtyInput.style.width = "60px";
+          qtyInput.addEventListener('input', () => {
+            calculateRowTotal(tr);
+            calculateGrandTotal();
+          });
+          tdQty.appendChild(qtyInput);
+          tr.appendChild(tdQty);
+
+          // total price (price * qty)
+          const tdTotal = document.createElement("td");
+          tdTotal.textContent = "0.00";
+          tr.appendChild(tdTotal);
+
+          table.appendChild(tr);
         });
-      }).getProducts();
+
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
     }
 
-    function updateAmount(input) {
-      var row = input.closest("tr");
-      var price = parseFloat(row.cells[2].textContent);
-      var qty = parseInt(input.value) || 0;
-      row.querySelector(".amount").textContent = (price * qty).toFixed(2);
+    function calculateRowTotal(row) {
+      const price = parseFloat(row.children[2].textContent) || 0;
+      const qty = parseInt(row.children[3].firstChild.value) || 0;
+      const total = price * qty;
+      row.children[4].textContent = total.toFixed(2);
     }
 
-    function saveOrder() {
-      var phone = document.getElementById("phoneNumber").value.trim();
-      if (!phone) {
+    function calculateGrandTotal() {
+  const tableBody = document.getElementById("productsTableBody");
+  let grandTotal = 0;
+  Array.from(tableBody.children).forEach(row => {
+    grandTotal += parseFloat(row.children[4].textContent) || 0;
+  });
+  document.getElementById("totalPrice").value = grandTotal.toFixed(2);
+
+  calculateFinalTotal(); // update final price whenever total product price changes
+}
+
+function calculateFinalTotal() {
+  const totalPrice = parseFloat(document.getElementById("totalPrice").value) || 0;
+  const deliveryFee = parseFloat(document.getElementById("deliveryFee").value) || 0;
+  const finalPrice = totalPrice + deliveryFee;
+  document.getElementById("finalPrice").value = finalPrice.toFixed(2);
+}
+
+
+    function addressChanged() {
+      const select = document.getElementById("addressDropdown");
+      if (select.value === "new") {
+        document.getElementById("newAddress").style.display = "block";
+      } else {
+        document.getElementById("newAddress").style.display = "none";
+      }
+    }
+
+    function showCustomAlert(message) {
+      const alertBox = document.getElementById("customAlert");
+      alertBox.querySelector("p").textContent = message;
+      alertBox.style.display = "block";
+    }
+
+    function closeCustomAlert() {
+      document.getElementById("customAlert").style.display = "none";
+    }
+
+    function validateAndSubmit() {
+      const phoneNumber = document.getElementById("phoneNumber").value.trim();
+      const customerName = document.getElementById("customerName").value.trim();
+      const addressDropdown = document.getElementById("addressDropdown");
+      const newAddress = document.getElementById("newAddress").value.trim();
+      const deliveryFee = document.getElementById("deliveryFee").value.trim();
+
+      if (!phoneNumber) {
         showCustomAlert("Please enter phone number.");
         return;
       }
 
-      var productRows = document.querySelectorAll("#productsTable tr");
-      var hasOrder = false;
-      var orderDetails = [];
-
-      productRows.forEach((row, index) => {
-        if (index === 0) return; // skip header row
-        var productID = row.cells[0].textContent;
-        var qtyInput = row.querySelector(".quantity");
-        var qty = parseInt(qtyInput.value) || 0;
-        if (qty > 0) {
-          hasOrder = true;
-          orderDetails.push({
-            productID: productID,
-            quantity: qty
-          });
-        }
-      });
-
-      if (!hasOrder) {
-        showCustomAlert("Please select at least one product quantity greater than zero.");
+      if (!customerName) {
+        showCustomAlert("Please enter customer name.");
         return;
       }
 
-      // Call Apps Script function to save order (คุณต้องเขียนฟังก์ชัน saveOrder ใน Google Apps Script)
-      google.script.run.withSuccessHandler(function(response) {
-        if(response === "success") {
-          showCustomAlert("Order saved successfully!");
-          // reset form หรือทำอย่างอื่นตามต้องการ
-        } else {
-          showCustomAlert("Failed to save order: " + response);
+      if (!deliveryFee) {
+        showCustomAlert("Please enter delivery fee.");
+        return;
+      }
+
+      if (addressDropdown.style.display !== "none") {
+        if (!addressDropdown.value) {
+          showCustomAlert("Please select an address.");
+          return;
         }
-      }).saveOrder({
-        phone: phone,
-        orderDate: document.getElementById("orderDate").value,
-        address: (document.getElementById("addressDropdown").value === "NEW") ? document.getElementById("newAddress").value : document.getElementById("addressDropdown").value,
-        details: orderDetails
+        if (addressDropdown.value === "new" && !newAddress) {
+          showCustomAlert("Please enter new address.");
+          return;
+        }
+      } else {
+        if (!newAddress) {
+          showCustomAlert("Please enter address.");
+          return;
+        }
+      }
+
+      // ตรวจสอบว่าใส่สินค้าอย่างน้อย 1 รายการและจำนวน > 0
+      const rows = document.querySelectorAll("#productsTableBody tr");
+      let hasQty = false;
+      rows.forEach(row => {
+        const qty = parseInt(row.children[3].firstChild.value) || 0;
+        if (qty > 0) hasQty = true;
       });
+      if (!hasQty) {
+        showCustomAlert("Please enter quantity for at least one product.");
+        return;
+      }
+
+      // เตรียมข้อมูลส่งไป API
+      const orderDate = document.getElementById("orderDate").value;
+      const address = (addressDropdown.style.display !== "none" && addressDropdown.value !== "new")
+                      ? addressDropdown.value : newAddress;
+
+      const products = [];
+      rows.forEach(row => {
+        const qty = parseInt(row.children[3].firstChild.value) || 0;
+        if (qty > 0) {
+          const price = parseFloat(row.children[2].textContent);
+          products.push({
+            productID: row.children[0].textContent,
+            productName: row.children[1].textContent,
+            price: price,
+            quantity: qty,
+            totalPrice: price * qty,  // คำนวณและส่งเฉพาะตัวที่มี qty > 0
+          });
+        }
+      });
+      const paymentLeadTime = document.getElementById("paymentLeadTime").value.trim();
+      const orderChannel = document.getElementById("orderChannel").value;
+      const custType = document.getElementById("custType").value;
+      const note = document.getElementById("note").value.trim();
+      const customerID = document.getElementById("customerID").value.trim();
+      const totalPrice = document.getElementById("totalPrice").value.trim();
+      
+
+
+      const payload = {
+        phoneNumber,
+        customerID,
+        address,
+        orderDate,
+        paymentLeadTime,
+        orderChannel,
+        customerType: custType,
+        note,
+        products,
+        deliveryFee,
+        totalPrice,
+
+      };
+
+      console.log("Submitting order:", payload);
+
+      // เรียก API ส่งข้อมูล
+      fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: "saveOrder", orderData: payload }),
+        headers: {
+          'Content-Type': 'text/plain'
+        }
+      }).then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showCustomAlert("Order submitted successfully!");
+            setTimeout(() => {closeCustomAlert();
+              location.reload(); // โหลดหน้าเว็บใหม่
+              }, 1500);
+          } else {
+            showCustomAlert("Error submitting order: " + (data.message || "Unknown error"));
+          }
+        })
+        .catch(err => {
+          showCustomAlert("Network error: " + err.message);
+        });
     }
-    // ... (โค้ดฟังก์ชันอื่น ๆ ที่คุณมี เช่น fetchPhoneSuggestions, fetchCustomer, saveOrder ฯลฯ)
 
   </script>
 </head>
@@ -386,7 +541,7 @@
         <label>Customer Name</label>
         <input type="text" id="customerName" readonly>
         <label>Delivery Address</label>
-        <select id="addressDropdown" onchange="toggleNewAddress()" ></select>
+        <select id="addressDropdown" onchange="addressChanged()" ></select>
         <input type="text" id="newAddress" style="display: none;" placeholder="Enter new address">
       </div>
       
@@ -420,11 +575,12 @@
     </div>
 
     <div class="button-container">
-      <button type="button" onclick="saveOrder()">Save Order</button>
+      <button type="button" onclick="validateAndSubmit()">Save Order</button>
     </div>
   </form>
 
   <table border="1" id="productsTable">
+  <thead>
     <tr>
       <th>Product ID</th>
       <th>Product Name</th>
@@ -432,11 +588,15 @@
       <th>Quantity</th>
       <th>Total</th>
     </tr>
-  </table>
+  </thead>
+  <tbody id="productsTableBody">
+    <!-- rows will be inserted here -->
+  </tbody>
+</table>
 
   <div id="customAlert">
     <p id="alertMessage">Please fill in the required fields!</p>
-    <button id="customAlertButton" onclick="closeAlert()">OK</button>
+    <button id="customAlertButton" onclick="closeCustomAlert()">OK</button>
   </div>
 
 </body>
